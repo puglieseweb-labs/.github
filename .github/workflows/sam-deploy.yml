@@ -38,6 +38,9 @@ on:
     secrets:
       AWS_ACCOUNT_ID:
         required: true
+      PARAMETER_SECRETS:
+        description: Secret parameter overrides (appended to parameter-overrides input)
+        required: false
 
 permissions:
   id-token: write
@@ -76,7 +79,8 @@ jobs:
             --resolve-s3 \
             --region ${{ inputs.aws-region }} \
             --capabilities ${{ inputs.capabilities }} \
-            ${{ inputs.parameter-overrides && format('--parameter-overrides {0}', inputs.parameter-overrides) || '' }}
+            ${{ inputs.parameter-overrides && format('--parameter-overrides {0}', inputs.parameter-overrides) || '' }} \
+            ${{ secrets.PARAMETER_SECRETS || '' }}
 
       - name: Deployment Summary
         run: |
