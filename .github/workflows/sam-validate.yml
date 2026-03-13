@@ -1,0 +1,22 @@
+name: SAM Validate
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory containing the SAM template
+        type: string
+        default: '.'
+
+jobs:
+  validate:
+    name: Validate SAM Template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/setup-sam@v2
+
+      - name: Validate and lint SAM template
+        working-directory: ${{ inputs.working-directory }}
+        run: sam validate --lint

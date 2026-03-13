@@ -1,0 +1,91 @@
+name: SAM Deploy
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Directory containing the SAM template
+        type: string
+        default: '.'
+      stack-name:
+        description: CloudFormation stack name
+        required: true
+        type: string
+      aws-region:
+        description: AWS region to deploy to
+        type: string
+        default: 'eu-west-1'
+      python-version:
+        description: Python version for SAM build
+        type: string
+        default: '3.11'
+      parameter-overrides:
+        description: SAM parameter overrides string
+        type: string
+        default: ''
+      capabilities:
+        description: CloudFormation capabilities
+        type: string
+        default: 'CAPABILITY_IAM'
+      environment:
+        description: GitHub environment name for approvals/secrets
+        type: string
+        default: 'production'
+      deploy-role-name:
+        description: IAM role name for OIDC authentication
+        required: true
+        type: string
+    secrets:
+      AWS_ACCOUNT_ID:
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ inputs.deploy-role-name }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - uses: aws-actions/setup-sam@v2
+
+      - name: SAM Build
+        working-directory: ${{ inputs.working-directory }}
+        run: sam build
+
+      - name: SAM Deploy
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          sam deploy \
+            --stack-name ${{ inputs.stack-name }} \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --resolve-s3 \
+            --region ${{ inputs.aws-region }} \
+            --capabilities ${{ inputs.capabilities }} \
+            ${{ inputs.parameter-overrides && format('--parameter-overrides {0}', inputs.parameter-overrides) || '' }}
+
+      - name: Deployment Summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## Deployment Summary
+
+          | Detail | Value |
+          |--------|-------|
+          | **Stack** | \`${{ inputs.stack-name }}\` |
+          | **Region** | \`${{ inputs.aws-region }}\` |
+          | **Status** | Deployed |
+          EOF

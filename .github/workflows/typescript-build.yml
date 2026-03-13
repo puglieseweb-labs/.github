@@ -1,0 +1,46 @@
+name: TypeScript Build
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version to use
+        type: string
+        default: '20'
+      working-directory:
+        description: Directory containing package.json
+        type: string
+        default: '.'
+      run-tests:
+        description: Whether to run npm test after build
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: TypeScript Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build
+        working-directory: ${{ inputs.working-directory }}
+        run: npm run build
+
+      - name: Test
+        if: inputs.run-tests
+        working-directory: ${{ inputs.working-directory }}
+        run: npm test

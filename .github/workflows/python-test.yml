@@ -1,0 +1,55 @@
+name: Python Tests
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version to use
+        type: string
+        default: '3.11'
+      test-directory:
+        description: Directory containing tests
+        type: string
+        default: 'tests/'
+      requirements-file:
+        description: Path to requirements file (empty to skip)
+        type: string
+        default: ''
+      extra-packages:
+        description: Space-separated list of extra pip packages to install
+        type: string
+        default: 'pytest boto3'
+      working-directory:
+        description: Working directory for running tests
+        type: string
+        default: '.'
+      env-vars:
+        description: JSON object of environment variables for tests
+        type: string
+        default: '{}'
+
+jobs:
+  test:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          if [ -n "${{ inputs.requirements-file }}" ] && [ -f "${{ inputs.requirements-file }}" ]; then
+            pip install -r "${{ inputs.requirements-file }}"
+          fi
+          if [ -n "${{ inputs.extra-packages }}" ]; then
+            pip install ${{ inputs.extra-packages }}
+          fi
+
+      - name: Run tests
+        working-directory: ${{ inputs.working-directory }}
+        env: ${{ fromJson(inputs.env-vars) }}
+        run: pytest ${{ inputs.test-directory }} -v
