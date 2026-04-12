@@ -19,6 +19,9 @@ on:
         description: Whether to run tests
         type: boolean
         default: true
+    secrets:
+      NODE_AUTH_TOKEN:
+        required: false
 
 jobs:
   ci:
@@ -36,6 +39,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: Type check
         if: inputs.run-type-check
