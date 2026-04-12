@@ -67,9 +67,11 @@ jobs:
 
       - name: Checkout sibling repos
         if: inputs.sibling-repos != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           for repo in ${{ inputs.sibling-repos }}; do
-            git clone --depth 1 https://github.com/${{ github.repository_owner }}/${repo}.git ../${repo}
+            git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/${repo}.git ../${repo}
           done
 
       - uses: pnpm/action-setup@v4
@@ -81,6 +83,16 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build sibling repos
+        if: inputs.sibling-repos != ''
+        run: |
+          for repo in ${{ inputs.sibling-repos }}; do
+            if [ -f "../${repo}/package.json" ]; then
+              echo "Building sibling repo: ${repo}"
+              cd "../${repo}" && npm install --ignore-scripts && npm run build && cd -
+            fi
+          done
 
       - name: Type check
         if: inputs.type-check
