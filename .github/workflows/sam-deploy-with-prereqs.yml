@@ -80,6 +80,16 @@ on:
           pip install -t target, relative to working-directory. Default is
           the conventional Python 3.11 layer path. Directory is created if
           missing.
+      pre-build-command:
+        type: string
+        required: false
+        default: ''
+        description: |
+          Arbitrary shell command run in working-directory after layer
+          install and before `sam build`. Use for build-time artifact
+          generation (e.g. merged OpenAPI specs from Powertools handlers
+          baked into a spec-serving Lambda). Symmetric with the input
+          on sam-deploy.yml.
     secrets:
       AWS_ACCOUNT_ID:
         required: true
@@ -213,6 +223,11 @@ jobs:
             pip install "$PKG" -t "${{ inputs.layer-install-target }}"
             echo "::endgroup::"
           done <<< "${{ inputs.layer-packages }}"
+
+      - name: Pre-build command
+        if: inputs.pre-build-command != ''
+        working-directory: ${{ inputs.working-directory }}
+        run: ${{ inputs.pre-build-command }}
 
       - name: SAM build
         working-directory: ${{ inputs.working-directory }}
