@@ -258,7 +258,21 @@ jobs:
 
       - name: SAM build
         working-directory: ${{ inputs.working-directory }}
-        run: sam build --use-container --parallel
+        # Build on the runner's host Python instead of inside a Docker
+        # container. `--use-container` was removed because our Lambdas
+        # use arm64 architecture and GitHub's ubuntu-latest runners are
+        # x86_64, which forces SAM to run the arm64 Python container
+        # under qemu emulation. Emulated pip installs are 10-30x slower
+        # and hang indefinitely under --parallel contention (observed:
+        # shared-notifications run 24390441769 hung for 40+ minutes on
+        # a 2-package layer).
+        #
+        # None of the shared-* Lambdas use native (C-extension)
+        # dependencies, so host-Python builds are correct. If a future
+        # caller adds native deps (numpy, Pillow, etc.), the layer-
+        # packages input can be extended or this workflow can gain a
+        # `use-container: boolean` input to opt back in per-caller.
+        run: sam build --parallel
 
       - name: SAM deploy
         working-directory: ${{ inputs.working-directory }}
